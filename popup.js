@@ -147,7 +147,6 @@ autoBtn.addEventListener('click', async () => {
     }
 
     // Read filter states
-    const minRating = parseFloat(document.getElementById('min-rating').value) || 0;
     const requirePhone = document.getElementById('filter-phone').checked;
     const requireWebsite = document.getElementById('filter-website').checked;
 
@@ -161,7 +160,7 @@ autoBtn.addEventListener('click', async () => {
     chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: autoScrapeList,
-        args: [endpointToUse, minRating, requirePhone, requireWebsite]
+        args: [endpointToUse, requirePhone, requireWebsite]
     });
 
     window._pollId = startPolling();
@@ -178,10 +177,9 @@ stopBtn.addEventListener('click', async () => {
     stopBtn.disabled = true;
 });
 
-// ─────────────────────────────────────────────
 // autoScrapeList — injected into the Maps tab context
 // ─────────────────────────────────────────────
-async function autoScrapeList(backendUrl, minRating, requirePhone, requireWebsite) {
+async function autoScrapeList(backendUrl, requirePhone, requireWebsite) {
     const feed = document.querySelector('div[role="feed"]');
     if (!feed) {
         await chrome.storage.local.set({ scrapeProgress: { done: true, count: 0 } });
@@ -309,13 +307,6 @@ async function autoScrapeList(backendUrl, minRating, requirePhone, requireWebsit
         if (webLinks.length > 0) website = webLinks[0].href;
 
         // ── Apply filters ──
-        const numericRating = parseFloat(rating) || 0;
-        if (minRating > 0 && numericRating < minRating) {
-            skipped++;
-            console.log(`⏭️ Skipped (rating ${rating} < ${minRating}): ${name}`);
-            continue;
-        }
-
         if (requirePhone && phone === "N/A") {
             skipped++;
             console.log(`⏭️ Skipped (no phone number found): ${name}`);
