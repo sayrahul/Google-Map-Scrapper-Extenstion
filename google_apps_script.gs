@@ -35,7 +35,15 @@ function doPost(e) {
 
     // ── Auto-create sheet tab & insert headers if it does not exist ──
     if (!sheet) {
-      sheet = ss.insertSheet(sheetName);
+      // If there is only one sheet and it is completely empty, rename it instead of inserting a new one
+      var sheets = ss.getSheets();
+      if (sheets.length === 1 && sheets[0].getLastRow() === 0) {
+        sheet = sheets[0];
+        sheet.setName(sheetName);
+      } else {
+        sheet = ss.insertSheet(sheetName);
+      }
+      
       sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
       sheet.getRange(1, 1, 1, HEADERS.length)
            .setBackground("#0f172a")
