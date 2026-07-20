@@ -35,7 +35,6 @@ function hideProgress() {
 }
 
 function startPolling() {
-    // Returns the interval id so caller can store it
     return setInterval(async () => {
         const { scrapeProgress: p } = await chrome.storage.local.get('scrapeProgress');
         if (!p) return;
@@ -45,23 +44,42 @@ function startPolling() {
             stopBtn.style.display = "none";
             autoBtn.disabled = false;
             setStatus(`✅ Complete! Saved ${p.count} leads to your sheet.`, "#4ade80");
+            saveHistory(p.count, p.skipped || 0, p.searchLabel || '');
         } else if (p.stopped) {
             clearInterval(window._pollId);
             hideProgress();
             stopBtn.style.display = "none";
             autoBtn.disabled = false;
             setStatus(`⛔ Stopped. ${p.count} leads saved.`, "#f59e0b");
+            saveHistory(p.count, p.skipped || 0, p.searchLabel || '');
         } else if (p.current) {
             showProgress(p.current, p.total, p.name || "...");
         }
     }, 600);
 }
 
+function saveHistory(count, skipped, label) {
+    const historyDiv = document.getElementById('history');
+    if (!historyDiv) return;
+    const now = new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+    const skippedText = skipped > 0 ? ` · ${skipped} skipped` : '';
+    historyDiv.innerText = `Last run: ${count} saved${skippedText} · ${now}`;
+    chrome.storage.local.set({ lastScrapeHistory: { count, skipped, label, time: now } });
+}
+
 // ─────────────────────────────────────────────
 // STARTUP RESUME — if popup reopens mid-scrape, restore UI
 // ─────────────────────────────────────────────
 (async () => {
-    const { scrapeProgress: p } = await chrome.storage.local.get('scrapeProgress');
+    const { scrapeProgress: p, lastScrapeHistory: h } = await chrome.storage.local.get(['scrapeProgress', 'lastScrapeHistory']);
+    const historyDiv = document.getElementById('history');
+
+    // Show last run history
+    if (h && historyDiv) {
+        const skippedText = h.skipped > 0 ? ` · ${h.skipped} skipped` : '';
+        historyDiv.innerText = `Last run: ${h.count} saved${skippedText} · ${h.time}`;
+    }
+
     if (!p) return;
     if (p.done) {
         setStatus(`✅ Last scrape: ${p.count} leads saved.`, "#4ade80");
@@ -72,7 +90,7 @@ function startPolling() {
         autoBtn.disabled = true;
         stopBtn.style.display = "block";
         stopBtn.disabled = false;
-        setStatus(`Resuming display... scraping in background.`, "#38bdf8");
+        setStatus(`Resuming display… scraping in background.`, "#38bdf8");
         window._pollId = startPolling();
     }
 })();
@@ -92,11 +110,14 @@ autoBtn.addEventListener('click', async () => {
     stopBtn.style.display = "block";
     stopBtn.disabled = false;
     setStatus("Scrolling to load all results...", "#38bdf8");
+    document.getElementById('history').innerText = '';
+
+    const minRating = parseFloat(document.getElementById('min-rating').value) || 0;
 
     chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: autoScrapeList,
-        args: [BACKEND_ENDPOINT]
+        args: [BACKEND_ENDPOINT, minRating]
     });
 
     // Start polling (background service worker handles the actual notification)
@@ -150,7 +171,7 @@ function parseMapsDOM() {
 //           stop flag, review count, category, Maps URL, retry logic,
 //           rate-limit delay (200ms between sends)
 // ─────────────────────────────────────────────
-async function autoScrapeList(backendUrl) {
+async function autoScrapeList(backendUrl, minRating = 0) {
     const feed = document.querySelector('div[role="feed"]');
     if (!feed) {
         await chrome.storage.local.set({ scrapeProgress: { done: true, count: 0 } });
@@ -185,6 +206,7 @@ async function autoScrapeList(backendUrl) {
 
     const total = uniqueLinks.length;
     let count = 0;
+    let skipped = 0;
     const ratingRegex  = /^(\d\.\d)/;
     const reviewsRegex = /\(([\d,]+)\)/;
     const phoneRegex   = /(?:\+?\d{1,3}[\s\-]?)?\(?\d{3,5}\)?[\s\-]?\d{3,5}[\s\-]?\d{3,5}/;
@@ -193,7 +215,7 @@ async function autoScrapeList(backendUrl) {
         // Check stop flag
         const { stopRequested } = await chrome.storage.local.get('stopRequested');
         if (stopRequested) {
-            await chrome.storage.local.set({ scrapeProgress: { stopped: true, count } });
+            await chrome.storage.local.set({ scrapeProgress: { stopped: true, count, skipped } });
             return;
         }
 
@@ -261,6 +283,14 @@ async function autoScrapeList(backendUrl) {
         );
         if (webLinks.length > 0) website = webLinks[0].href;
 
+        // ── Minimum rating filter ──
+        const numericRating = parseFloat(rating) || 0;
+        if (minRating > 0 && numericRating < minRating) {
+            skipped++;
+            console.log(`⏭️ Skipped (rating ${rating} < ${minRating}): ${name}`);
+            continue;
+        }
+
         const payload = { name, address, phone, website, rating, reviews, category, mapsUrl };
         console.log(`[${i+1}/${total}] ${name} | ${rating}★ (${reviews}) | ${phone} | ${category}`);
 
@@ -286,6 +316,6 @@ async function autoScrapeList(backendUrl) {
         await new Promise(r => setTimeout(r, 200));
     }
 
-    await chrome.storage.local.set({ scrapeProgress: { done: true, count } });
-    console.log(`Done! Saved ${count}/${total} leads.`);
+    await chrome.storage.local.set({ scrapeProgress: { done: true, count, skipped } });
+    console.log(`Done! Saved ${count}/${total} leads. Skipped ${skipped} (below min rating).`);
 }
