@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 270px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 16px;
+      margin: 0;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .header img { width: 24px; height: 24px; margin-right: 8px; }
+    .header h3 {
+      margin: 0;
+      color: #38bdf8;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+    .btn {
+      width: 100%;
+      padding: 10px;
+      background-color: #0284c7;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      font-size: 13px;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-green { background-color: #10b981; }
+    .btn-green:hover { background-color: #059669; }
+    .btn-red { background-color: #dc2626; margin-top: 8px; display: none; }
+    .btn-red:hover { background-color: #b91c1c; }
+    #status {
+      margin-top: 10px;
+      font-size: 12px;
+      text-align: center;
+      color: #94a3b8;
+      line-height: 1.6;
+      min-height: 30px;
+    }
+    #progress-bar-wrap {
+      display: none;
+      background: #1e293b;
+      border-radius: 6px;
+      height: 6px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    #progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #38bdf8, #10b981);
+      width: 0%;
+      transition: width 0.4s ease;
+      border-radius: 6px;
+    }
+    #progress-label {
+      font-size: 11px;
+      color: #64748b;
+      text-align: center;
+      margin-top: 4px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="icon.svg">
+    <h3>PROVENTURE LEAD SYSTEM</h3>
+  </div>
+  <button id="auto-grab-btn" class="btn btn-green">⚡ Auto-Scrape All Loaded</button>
+  <button id="stop-btn" class="btn btn-red">⛔ Stop Scraping</button>
+  <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+  <div id="progress-label"></div>
+  <div id="status">Open Google Maps and search for businesses.</div>
+  <script src="popup.js"></script>
+</body>
+</html>
