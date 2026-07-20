@@ -48,27 +48,28 @@ function startPolling() {
             stopBtn.style.display = "none";
             autoBtn.disabled = false;
             setStatus(`✅ Complete! Saved ${p.count} leads to your sheet.`, "#4ade80");
-            saveHistory(p.count, p.skipped || 0);
+            saveHistory(p.count, p.skipped || 0, p.searchLabel || 'Leads');
         } else if (p.stopped) {
             clearInterval(window._pollId);
             hideProgress();
             stopBtn.style.display = "none";
             autoBtn.disabled = false;
             setStatus(`⛔ Stopped. ${p.count} leads saved.`, "#f59e0b");
-            saveHistory(p.count, p.skipped || 0);
+            saveHistory(p.count, p.skipped || 0, p.searchLabel || 'Leads');
         } else if (p.current) {
             showProgress(p.current, p.total, p.name || "...");
         }
     }, 600);
 }
 
-function saveHistory(count, skipped) {
+function saveHistory(count, skipped, label) {
     const historyDiv = document.getElementById('history');
     if (!historyDiv) return;
     const now = new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
     const skippedText = skipped > 0 ? ` · ${skipped} skipped` : '';
-    historyDiv.innerText = `Last run: ${count} saved${skippedText} · ${now}`;
-    chrome.storage.local.set({ lastScrapeHistory: { count, skipped, time: now } });
+    const labelText = label ? ` [${label}]` : '';
+    historyDiv.innerText = `Last run${labelText}: ${count} saved${skippedText} · ${now}`;
+    chrome.storage.local.set({ lastScrapeHistory: { count, skipped, label, time: now } });
 }
 
 // ─────────────────────────────────────────────
@@ -87,7 +88,8 @@ function saveHistory(count, skipped) {
 
     if (h && historyDiv) {
         const skippedText = h.skipped > 0 ? ` · ${h.skipped} skipped` : '';
-        historyDiv.innerText = `Last run: ${h.count} saved${skippedText} · ${h.time}`;
+        const labelText = h.label ? ` [${h.label}]` : '';
+        historyDiv.innerText = `Last run${labelText}: ${h.count} saved${skippedText} · ${h.time}`;
     }
 
     if (!p) return;
@@ -185,6 +187,18 @@ async function autoScrapeList(backendUrl, minRating, requirePhone, requireWebsit
         return;
     }
 
+    // Extract search query to use as tab name in Google Sheets
+    let searchLabel = "Leads";
+    const searchInput = document.querySelector('input#searchboxinput');
+    if (searchInput && searchInput.value.trim()) {
+        searchLabel = searchInput.value.trim();
+    } else {
+        const urlMatch = window.location.href.match(/\/maps\/search\/([^\/]+)/);
+        if (urlMatch) {
+            searchLabel = decodeURIComponent(urlMatch[1].replace(/\+/g, ' '));
+        }
+    }
+
     // Auto-scroll until all results are loaded
     let lastHeight = 0, stableCount = 0;
     while (stableCount < 5) {
@@ -205,7 +219,7 @@ async function autoScrapeList(backendUrl, minRating, requirePhone, requireWebsit
     });
 
     if (uniqueLinks.length === 0) {
-        await chrome.storage.local.set({ scrapeProgress: { done: true, count: 0 } });
+        await chrome.storage.local.set({ scrapeProgress: { done: true, count: 0, searchLabel } });
         alert("No results found. Please search for businesses first.");
         return;
     }
@@ -221,7 +235,7 @@ async function autoScrapeList(backendUrl, minRating, requirePhone, requireWebsit
         // Check stop flag
         const { stopRequested } = await chrome.storage.local.get('stopRequested');
         if (stopRequested) {
-            await chrome.storage.local.set({ scrapeProgress: { stopped: true, count, skipped } });
+            await chrome.storage.local.set({ scrapeProgress: { stopped: true, count, skipped, searchLabel } });
             return;
         }
 
@@ -236,7 +250,7 @@ async function autoScrapeList(backendUrl, minRating, requirePhone, requireWebsit
         }
 
         // Report live progress
-        await chrome.storage.local.set({ scrapeProgress: { current: i + 1, total, name, count, skipped } });
+        await chrome.storage.local.set({ scrapeProgress: { current: i + 1, total, name, count, skipped, searchLabel } });
 
         const lines = (card.innerText || "").split('\n').map(l => l.trim()).filter(Boolean);
         let phone = "N/A", address = "N/A", rating = "N/A", reviews = "N/A", category = "N/A", website = "N/A";
@@ -305,7 +319,7 @@ async function autoScrapeList(backendUrl, minRating, requirePhone, requireWebsit
             continue;
         }
 
-        const payload = { name, address, phone, website, rating, reviews, category, mapsUrl };
+        const payload = { name, address, phone, website, rating, reviews, category, mapsUrl, searchLabel };
         console.log(`[${i+1}/${total}] ${name} | ${rating}★ (${reviews}) | ${phone} | ${category}`);
 
         // Send with retry (up to 3 attempts)
@@ -330,6 +344,6 @@ async function autoScrapeList(backendUrl, minRating, requirePhone, requireWebsit
         await new Promise(r => setTimeout(r, 200));
     }
 
-    await chrome.storage.local.set({ scrapeProgress: { done: true, count, skipped } });
+    await chrome.storage.local.set({ scrapeProgress: { done: true, count, skipped, searchLabel } });
     console.log(`Done! Saved ${count}/${total} leads. Skipped ${skipped}.`);
 }

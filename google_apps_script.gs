@@ -20,26 +20,34 @@ const COL_STATUS    = 10;
 
 function doPost(e) {
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data = JSON.parse(e.postData.contents);
+    var name        = (data.name        || "").trim();
+    var mapsUrl     = (data.mapsUrl     || "").trim();
+    var rating      = parseFloat(data.rating) || 0;
+    var searchLabel = (data.searchLabel || "Leads").trim();
 
-    // ── Auto-insert headers if row 1 is empty ──
-    if (sheet.getLastRow() === 0 || sheet.getRange(1, 1).getValue() === "") {
+    // Clean sheet name (tab name cannot exceed 30 chars or contain forbidden characters)
+    var sheetName = searchLabel.replace(/[\\\/\?\*\:\[\]]/g, "").substring(0, 30);
+    if (!sheetName) sheetName = "Leads";
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(sheetName);
+
+    // ── Auto-create sheet tab & insert headers if it does not exist ──
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
       sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
       sheet.getRange(1, 1, 1, HEADERS.length)
            .setBackground("#0f172a")
            .setFontColor("#38bdf8")
            .setFontWeight("bold");
       sheet.setFrozenRows(1);
+      
       // Set column widths for readability
       sheet.setColumnWidth(COL_NAME,      200);
       sheet.setColumnWidth(COL_MAPS_URL,  80);
       sheet.setColumnWidth(5,             250); // Address
     }
-
-    var data = JSON.parse(e.postData.contents);
-    var name    = (data.name    || "").trim();
-    var mapsUrl = (data.mapsUrl || "").trim();
-    var rating  = parseFloat(data.rating) || 0;
 
     // ── Duplicate detection: skip if name already exists in Name column ──
     var lastRow = sheet.getLastRow();
