@@ -20,7 +20,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (p.done) {
         chrome.notifications.create('scrape_done_' + Date.now(), {
             type:    'basic',
-            iconUrl: 'icon.svg',
+            iconUrl: 'icon.png',
             title:   'Proventure Lead System',
             message: `Scraping complete! Saved ${p.count} lead${p.count !== 1 ? 's' : ''} to your Google Sheet.`
         });
@@ -29,7 +29,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (p.stopped) {
         chrome.notifications.create('scrape_stopped_' + Date.now(), {
             type:    'basic',
-            iconUrl: 'icon.svg',
+            iconUrl: 'icon.png',
             title:   'Proventure — Stopped',
             message: `Scrape stopped. ${p.count} lead${p.count !== 1 ? 's' : ''} were saved before stopping.`
         });
