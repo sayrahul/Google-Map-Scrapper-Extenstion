@@ -44,8 +44,9 @@ function doPost(e) {
     // ── Duplicate detection: skip if name already exists in Name column ──
     var lastRow = sheet.getLastRow();
     if (lastRow > 1) {
-      var existingNames = sheet.getRange(2, COL_NAME, lastRow - 1, 1).getValues().flat();
-      if (existingNames.map(n => n.toString().toLowerCase()).includes(name.toLowerCase())) {
+      var finder = sheet.getRange(2, COL_NAME, lastRow - 1, 1).createTextFinder(name).matchEntireCell(true).matchCase(false);
+      var cell = finder.findNext();
+      if (cell) {
         return ContentService
           .createTextOutput(JSON.stringify({ status: "duplicate", message: "Lead already exists: " + name }))
           .setMimeType(ContentService.MimeType.JSON);

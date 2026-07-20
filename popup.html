@@ -24,6 +24,7 @@
       color: #38bdf8;
       font-size: 14px;
       letter-spacing: 0.5px;
+      flex-grow: 1;
     }
     .btn {
       width: 100%;
@@ -74,8 +75,6 @@
     }
     .filter-row {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
       margin-top: 10px;
       padding: 8px 10px;
       background: #1e293b;
@@ -83,10 +82,11 @@
       border: 1px solid #334155;
     }
     .filter-row label {
-      font-size: 12px;
+      font-size: 11px;
       color: #94a3b8;
+      cursor: pointer;
     }
-    .filter-row input {
+    .filter-row input[type="number"] {
       width: 48px;
       padding: 3px 6px;
       background: #0f172a;
@@ -95,6 +95,31 @@
       color: #f8fafc;
       font-size: 12px;
       text-align: center;
+    }
+    .settings-drawer {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #1e293b;
+      border-radius: 6px;
+      border: 1px solid #334155;
+    }
+    .settings-drawer label {
+      font-size: 11px;
+      color: #94a3b8;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .settings-drawer input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px;
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      color: #f8fafc;
+      font-size: 11px;
+      margin-bottom: 6px;
     }
     #history {
       margin-top: 6px;
@@ -109,13 +134,33 @@
   <div class="header">
     <img src="icon.png">
     <h3>PROVENTURE LEAD SYSTEM</h3>
+    <button id="settings-toggle" style="background: none; border: none; color: #38bdf8; cursor: pointer; font-size: 16px; padding: 0 4px;" title="Settings">⚙️</button>
   </div>
+  
+  <div id="settings-drawer" class="settings-drawer">
+    <label>Google Sheets Web App URL:</label>
+    <input type="text" id="sheet-url" placeholder="https://script.google.com/macros/s/...">
+    <button id="settings-save-btn" class="btn" style="padding: 6px; font-size: 12px;">Save URL</button>
+  </div>
+
   <button id="auto-grab-btn" class="btn btn-green">⚡ Auto-Scrape All Loaded</button>
   <button id="stop-btn" class="btn btn-red">⛔ Stop Scraping</button>
-  <div class="filter-row">
-    <label>⭐ Min Rating Filter:</label>
-    <input type="number" id="min-rating" min="0" max="5" step="0.5" value="0" title="Only save businesses with rating above this value">
+
+  <div class="filter-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <label>⭐ Min Rating Filter:</label>
+      <input type="number" id="min-rating" min="0" max="5" step="0.5" value="0" title="Only save businesses with rating above this value">
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+      <input type="checkbox" id="filter-phone" style="width: auto; margin: 0;">
+      <label for="filter-phone">Only save leads with phone number</label>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <input type="checkbox" id="filter-website" style="width: auto; margin: 0;">
+      <label for="filter-website">Only save leads with website</label>
+    </div>
   </div>
+
   <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
   <div id="progress-label"></div>
   <div id="status">Open Google Maps and search for businesses.</div>
