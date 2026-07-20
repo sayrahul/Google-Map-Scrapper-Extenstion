@@ -171,6 +171,8 @@ autoBtn.addEventListener('click', async () => {
 // STOP BUTTON
 // ─────────────────────────────────────────────
 stopBtn.addEventListener('click', async () => {
+    // Set stopRequested directly to local storage and alert background worker
+    await chrome.storage.local.set({ stopRequested: true });
     chrome.runtime.sendMessage({ action: 'stop' });
     setStatus("Stop signal sent...", "#f59e0b");
     stopBtn.disabled = true;
@@ -202,6 +204,13 @@ async function autoScrapeList(backendUrl, minRating, requirePhone, requireWebsit
     // Auto-scroll until all results are loaded
     let lastHeight = 0, stableCount = 0;
     while (stableCount < 5) {
+        // Allow immediate abort during the scrolling phase
+        const { stopRequested } = await chrome.storage.local.get('stopRequested');
+        if (stopRequested) {
+            await chrome.storage.local.set({ scrapeProgress: { stopped: true, count: 0, skipped: 0, searchLabel } });
+            return;
+        }
+
         feed.scrollTo(0, feed.scrollHeight);
         await new Promise(r => setTimeout(r, 1500));
         if (feed.scrollHeight === lastHeight) { stableCount++; }
